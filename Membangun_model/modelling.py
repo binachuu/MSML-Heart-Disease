@@ -60,6 +60,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
+mlflow.autolog()
 with mlflow.start_run():
 
     lr = LogisticRegression(max_iter=1000)
