@@ -1,0 +1,8 @@
+groups:
+- name: latency-alerts
+  rules:
+  - alert: HighLatency
+    expr: model_latency_seconds_bucket > 1
+    for: 10s
+    labels:
+      severity: warning
