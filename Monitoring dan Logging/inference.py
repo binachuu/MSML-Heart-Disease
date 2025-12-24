@@ -1,16 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import joblib
-import numpy as np
+import requests
 import time
 
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 app = FastAPI()
-
-# ===== LOAD MODEL =====
-model = joblib.load("model_rf.pkl")
-scaler = joblib.load("scaler.pkl")
 
 # ===== PROMETHEUS METRICS =====
 REQUEST_COUNT = Counter(
@@ -28,7 +23,6 @@ REQUEST_ERRORS = Counter(
     "Total number of prediction errors"
 )
 
-# ===== PROMETHEUS ENDPOINT =====
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
@@ -36,23 +30,32 @@ app.mount("/metrics", metrics_app)
 class PredictRequest(BaseModel):
     features: list[float]
 
-# ===== ROUTES =====
+# ===== MLflow Serve Endpoint =====
+MLFLOW_SERVE_URL = "http://127.0.0.1:5001/invocations"
+
 @app.get("/")
 def home():
-    return {"message": "Heart Disease Model is running"}
+    return {"message": "Inference service is running"}
 
 @app.post("/predict")
 def predict(request: PredictRequest):
     start = time.time()
+
     try:
-        X = np.array(request.features).reshape(1, -1)
-        X_scaled = scaler.transform(X)
-        prediction = model.predict(X_scaled)
+        payload = {
+            "inputs": [request.features]
+        }
+
+        response = requests.post(
+            MLFLOW_SERVE_URL,
+            json=payload,
+            headers={"Content-Type": "application/json"}
+        )
 
         REQUEST_COUNT.inc()
         REQUEST_LATENCY.observe(time.time() - start)
 
-        return {"prediction": int(prediction[0])}
+        return response.json()
 
     except Exception as e:
         REQUEST_ERRORS.inc()
