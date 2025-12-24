@@ -7,6 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1jBORnw4FMl1gN1iJVBT_QqNWS8W0bAXi
 """
 
+!pip install mlflow
 import pandas as pd
 import numpy as np
 import joblib
@@ -33,23 +34,8 @@ df.columns
 # Binary classification
 df["num"] = (df["num"] > 0).astype(int)
 
-df_clean = df.copy()
-
-num_cols = df_clean.select_dtypes(include=["int64", "float64"]).columns
-cat_cols = df_clean.select_dtypes(include=["object"]).columns
-
-# numerik → median
-for col in num_cols:
-    df_clean[col] = df_clean[col].fillna(df_clean[col].median())
-
-# kategorikal → mode
-for col in cat_cols:
-    df_clean[col] = df_clean[col].fillna(df_clean[col].mode()[0])
-
-df_clean = pd.get_dummies(df_clean, columns=cat_cols, drop_first=True)
-
-X = df_clean.drop(columns=["num"])
-y = df_clean["num"]
+X = df.drop(columns=["num"])
+y = df["num"]
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
@@ -93,5 +79,3 @@ with mlflow.start_run(run_name="RandomForest"):
 
 joblib.dump(rf, "model_rf.pkl")
 joblib.dump(scaler, "scaler.pkl")
-
-df_clean.to_csv("heart_disease_clean.csv", index=False)
