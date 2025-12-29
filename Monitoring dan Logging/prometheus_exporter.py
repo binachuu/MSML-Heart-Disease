@@ -1,7 +1,6 @@
-from prometheus_client import Counter, Histogram, start_http_server
+from prometheus_client import start_http_server, Counter, Histogram
 import time
 
-# === METRICS ===
 prediction_requests_total = Counter(
     "prediction_requests_total",
     "Total number of prediction requests"
@@ -17,11 +16,8 @@ prediction_errors_total = Counter(
     "Total number of prediction errors"
 )
 
-def start_exporter():
-    start_http_server(8001)
-    print("Prometheus Exporter running on port 8001")
-
 if __name__ == "__main__":
-    start_exporter()
+    start_http_server(8001)
+    print("Prometheus exporter running on port 8001")
     while True:
-        time.sleep(1)
+        time.sleep(5)

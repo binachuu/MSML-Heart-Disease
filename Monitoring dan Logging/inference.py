@@ -7,7 +7,7 @@ from prometheus_client import Counter, Histogram, make_asgi_app
 
 app = FastAPI()
 
-# ===== PROMETHEUS METRICS =====
+# === METRICS ===
 REQUEST_COUNT = Counter(
     "prediction_requests_total",
     "Total number of prediction requests"
@@ -26,16 +26,12 @@ REQUEST_ERRORS = Counter(
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
-# ===== REQUEST SCHEMA =====
+# === SCHEMA ===
 class PredictRequest(BaseModel):
     features: list[float]
 
-# ===== MLflow Serve Endpoint =====
+# === MLflow Serve Endpoint ===
 MLFLOW_SERVE_URL = "http://127.0.0.1:5001/invocations"
-
-@app.get("/")
-def home():
-    return {"message": "Inference service is running"}
 
 @app.post("/predict")
 def predict(request: PredictRequest):
@@ -57,6 +53,6 @@ def predict(request: PredictRequest):
 
         return response.json()
 
-    except Exception as e:
+    except Exception:
         REQUEST_ERRORS.inc()
-        raise e
+        raise
