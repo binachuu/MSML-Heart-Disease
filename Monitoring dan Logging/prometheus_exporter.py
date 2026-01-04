@@ -1,23 +1,19 @@
-from prometheus_client import start_http_server, Counter, Histogram
-import time
+from prometheus_client import Counter, Histogram, start_http_server
 
-prediction_requests_total = Counter(
-    "prediction_requests_total",
-    "Total number of prediction requests"
+REQUEST_COUNT = Counter(
+    "inference_requests_total",
+    "Total inference requests"
 )
 
-prediction_latency_seconds = Histogram(
-    "prediction_latency_seconds",
-    "Prediction latency in seconds"
+PREDICTION_COUNT = Counter(
+    "model_predictions_total",
+    "Total predictions made"
 )
 
-prediction_errors_total = Counter(
-    "prediction_errors_total",
-    "Total number of prediction errors"
+REQUEST_LATENCY = Histogram(
+    "inference_latency_seconds",
+    "Inference latency"
 )
 
-if __name__ == "__main__":
-    start_http_server(8001)
-    print("Prometheus exporter running on port 8001")
-    while True:
-        time.sleep(5)
+# expose metrics di :8001
+start_http_server(8001)

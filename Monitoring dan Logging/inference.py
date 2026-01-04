@@ -1,58 +1,49 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import requests
+import mlflow.pyfunc
+import pandas as pd
 import time
 
-from prometheus_client import Counter, Histogram, make_asgi_app
+from prometheus_exporter import (
+    REQUEST_COUNT,
+    REQUEST_LATENCY,
+    PREDICTION_COUNT
+)
+
+MODEL_URI = "file:///D:/Kuliah/Asah/Project/MSML/Monitoring dan Logging/mlruns/1/models/m-084de3830b4444138fc3ddd1dcfdd223/artifacts"
+
+model = mlflow.pyfunc.load_model(MODEL_URI)
 
 app = FastAPI()
 
-# === METRICS ===
-REQUEST_COUNT = Counter(
-    "prediction_requests_total",
-    "Total number of prediction requests"
-)
-
-REQUEST_LATENCY = Histogram(
-    "prediction_latency_seconds",
-    "Prediction latency in seconds"
-)
-
-REQUEST_ERRORS = Counter(
-    "prediction_errors_total",
-    "Total number of prediction errors"
-)
-
-metrics_app = make_asgi_app()
-app.mount("/metrics", metrics_app)
-
-# === SCHEMA ===
-class PredictRequest(BaseModel):
-    features: list[float]
-
-# === MLflow Serve Endpoint ===
-MLFLOW_SERVE_URL = "http://127.0.0.1:5001/invocations"
+class InputData(BaseModel):
+    age: int
+    sex: int
+    cp: int
+    trestbps: int
+    chol: int
+    fbs: int
+    restecg: int
+    thalach: int
+    exang: int
+    oldpeak: float
+    slope: int
+    ca: int
+    thal: int
 
 @app.post("/predict")
-def predict(request: PredictRequest):
-    start = time.time()
+def predict(data: InputData):
+    start_time = time.time()
+    REQUEST_COUNT.inc()
 
-    try:
-        payload = {
-            "inputs": [request.features]
-        }
+    df = pd.DataFrame([data.dict()])
+    prediction = model.predict(df)
 
-        response = requests.post(
-            MLFLOW_SERVE_URL,
-            json=payload,
-            headers={"Content-Type": "application/json"}
-        )
+    latency = time.time() - start_time
+    REQUEST_LATENCY.observe(latency)
+    PREDICTION_COUNT.inc()
 
-        REQUEST_COUNT.inc()
-        REQUEST_LATENCY.observe(time.time() - start)
-
-        return response.json()
-
-    except Exception:
-        REQUEST_ERRORS.inc()
-        raise
+    return {
+        "prediction": int(prediction[0]),
+        "latency": latency
+    }
